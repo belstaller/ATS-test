@@ -6,6 +6,24 @@ export async function runMigrations() {
   try {
     await client.query('BEGIN');
 
+    // Create users table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(50) DEFAULT 'viewer' CHECK (role IN ('admin', 'recruiter', 'viewer')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create index on users email
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    `);
+
     // Create applicants table
     await client.query(`
       CREATE TABLE IF NOT EXISTS applicants (
@@ -42,11 +60,20 @@ export async function runMigrations() {
       $$ language 'plpgsql';
     `);
 
-    // Create trigger for updated_at
+    // Create trigger for applicants updated_at
     await client.query(`
       DROP TRIGGER IF EXISTS update_applicants_updated_at ON applicants;
       CREATE TRIGGER update_applicants_updated_at
         BEFORE UPDATE ON applicants
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `);
+
+    // Create trigger for users updated_at
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+      CREATE TRIGGER update_users_updated_at
+        BEFORE UPDATE ON users
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column();
     `);

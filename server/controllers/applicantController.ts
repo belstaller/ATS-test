@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as applicantService from '../services/applicantService';
 
 export async function getAllApplicants(
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {

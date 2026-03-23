@@ -7,7 +7,7 @@ function HomePage() {
       <div className="hero">
         <h1>Welcome to ATS Test</h1>
         <p className="hero-subtitle">
-          A modern Applicant Tracking System to manage your recruitment process efficiently
+          A modern Applicant Tracking System to manage your recruitment process efficiently.
         </p>
         <div className="hero-actions">
           <Link to="/applicants" className="btn btn-primary btn-large">
@@ -23,7 +23,7 @@ function HomePage() {
         </div>
         <div className="feature-card card">
           <h3>Monitor Status</h3>
-          <p>Keep track of each applicant's progress through the hiring pipeline</p>
+          <p>Keep track of each applicant&apos;s progress through the hiring pipeline</p>
         </div>
         <div className="feature-card card">
           <h3>Efficient Workflow</h3>

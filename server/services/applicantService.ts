@@ -32,7 +32,7 @@ export async function update(
   data: UpdateApplicantDTO
 ): Promise<Applicant | null> {
   const fields: string[] = [];
-  const values: any[] = [];
+  const values: (string | number | undefined)[] = [];
   let paramCount = 1;
 
   if (data.name !== undefined) {
