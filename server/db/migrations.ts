@@ -78,6 +78,36 @@ export async function runMigrations() {
         EXECUTE FUNCTION update_updated_at_column();
     `);
 
+    // Create notes table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS notes (
+        id SERIAL PRIMARY KEY,
+        applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
+        author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create indexes on notes
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_notes_applicant_id ON notes(applicant_id);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_notes_author_id ON notes(author_id);
+    `);
+
+    // Create trigger for notes updated_at
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_notes_updated_at ON notes;
+      CREATE TRIGGER update_notes_updated_at
+        BEFORE UPDATE ON notes
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `);
+
     // Insert sample data
     await client.query(`
       INSERT INTO applicants (name, email, phone, position, status)

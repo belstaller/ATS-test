@@ -295,6 +295,68 @@ export function validateApplicantQuery(
   next();
 }
 
+// ---------------------------------------------------------------------------
+// Notes
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates POST /api/applicants/:id/notes (create note).
+ */
+export function validateCreateNote(req: Request, res: Response, next: NextFunction): void {
+  const { body } = req.body as Record<string, unknown>;
+
+  if (!body || typeof body !== 'string' || body.trim().length === 0) {
+    res.status(400).json({ error: 'Note body is required and must be a non-empty string' });
+    return;
+  }
+
+  if (body.trim().length > 10_000) {
+    res.status(400).json({ error: 'Note body must not exceed 10,000 characters' });
+    return;
+  }
+
+  next();
+}
+
+/**
+ * Validates PATCH /api/applicants/:id/notes/:noteId (update note).
+ */
+export function validateUpdateNote(req: Request, res: Response, next: NextFunction): void {
+  const { body } = req.body as Record<string, unknown>;
+
+  if (!body || typeof body !== 'string' || body.trim().length === 0) {
+    res.status(400).json({ error: 'Note body is required and must be a non-empty string' });
+    return;
+  }
+
+  if (body.trim().length > 10_000) {
+    res.status(400).json({ error: 'Note body must not exceed 10,000 characters' });
+    return;
+  }
+
+  next();
+}
+
+// ---------------------------------------------------------------------------
+// Param: noteId
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates that :noteId route param is a positive integer.
+ */
+export function validateNoteIdParam(req: Request, res: Response, next: NextFunction): void {
+  const { noteId } = req.params;
+  if (!isPositiveInt(noteId)) {
+    res.status(400).json({ error: 'Invalid noteId: must be a positive integer' });
+    return;
+  }
+  next();
+}
+
+// ---------------------------------------------------------------------------
+// Users
+// ---------------------------------------------------------------------------
+
 /**
  * Validates query parameters for GET /api/users.
  */

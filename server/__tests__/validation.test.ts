@@ -16,6 +16,9 @@ import {
   validateApplicantStatus,
   validateApplicantQuery,
   validateUserQuery,
+  validateCreateNote,
+  validateUpdateNote,
+  validateNoteIdParam,
 } from '../middleware/validation';
 
 // ---------------------------------------------------------------------------
@@ -355,5 +358,121 @@ describe('validateUserQuery', () => {
 
   it('rejects non-positive limit', async () => {
     expect((await request(app).get('/?limit=-10')).status).toBe(400);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateNoteIdParam
+// ---------------------------------------------------------------------------
+
+describe('validateNoteIdParam', () => {
+  const app = makeApp('get', '/:noteId', validateNoteIdParam);
+
+  it('passes for a positive integer', async () => {
+    const res = await request(app).get('/7');
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects zero', async () => {
+    const res = await request(app).get('/0');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/noteId/i);
+  });
+
+  it('rejects a non-numeric string', async () => {
+    const res = await request(app).get('/abc');
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a negative integer', async () => {
+    const res = await request(app).get('/-3');
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a float', async () => {
+    const res = await request(app).get('/2.5');
+    expect(res.status).toBe(400);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateCreateNote
+// ---------------------------------------------------------------------------
+
+describe('validateCreateNote', () => {
+  const app = makeApp('post', '/', validateCreateNote);
+
+  it('passes a valid note body', async () => {
+    const res = await request(app).post('/').send({ body: 'Great candidate.' });
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects missing body field', async () => {
+    const res = await request(app).post('/').send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/body/i);
+  });
+
+  it('rejects empty string body', async () => {
+    const res = await request(app).post('/').send({ body: '' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/body/i);
+  });
+
+  it('rejects whitespace-only body', async () => {
+    const res = await request(app).post('/').send({ body: '   ' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/body/i);
+  });
+
+  it('rejects body exceeding 10,000 characters', async () => {
+    const res = await request(app).post('/').send({ body: 'x'.repeat(10_001) });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/10,000/i);
+  });
+
+  it('accepts a body of exactly 10,000 characters', async () => {
+    const res = await request(app).post('/').send({ body: 'x'.repeat(10_000) });
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects a non-string body', async () => {
+    const res = await request(app).post('/').send({ body: 42 });
+    expect(res.status).toBe(400);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateUpdateNote
+// ---------------------------------------------------------------------------
+
+describe('validateUpdateNote', () => {
+  const app = makeApp('patch', '/', validateUpdateNote);
+
+  it('passes a valid body', async () => {
+    const res = await request(app).patch('/').send({ body: 'Updated content.' });
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects missing body field', async () => {
+    const res = await request(app).patch('/').send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/body/i);
+  });
+
+  it('rejects empty string', async () => {
+    const res = await request(app).patch('/').send({ body: '' });
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects body exceeding 10,000 characters', async () => {
+    const res = await request(app).patch('/').send({ body: 'y'.repeat(10_001) });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/10,000/i);
+  });
+
+  it('accepts a body of exactly 10,000 characters', async () => {
+    const res = await request(app).patch('/').send({ body: 'y'.repeat(10_000) });
+    expect(res.status).toBe(200);
   });
 });

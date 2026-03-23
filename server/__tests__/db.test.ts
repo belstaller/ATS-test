@@ -589,6 +589,19 @@ describe('runMigrations', () => {
     expect(ddl).toMatch(/CREATE INDEX IF NOT EXISTS idx_users_email/i);
     expect(ddl).toMatch(/CREATE INDEX IF NOT EXISTS idx_applicants_email/i);
     expect(ddl).toMatch(/CREATE INDEX IF NOT EXISTS idx_applicants_status/i);
+    expect(ddl).toMatch(/CREATE INDEX IF NOT EXISTS idx_notes_applicant_id/i);
+  });
+
+  it('creates the notes table', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/CREATE TABLE IF NOT EXISTS notes/i);
   });
 
   it('inserts seed data for applicants', async () => {

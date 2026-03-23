@@ -34,6 +34,7 @@ import {
   validateUpdateApplicant,
   validateApplicantStatus,
 } from '../middleware/validation';
+import noteRoutes from './noteRoutes';
 
 const router = Router();
 
@@ -94,5 +95,10 @@ router.delete(
   validateIdParam,
   deleteApplicant
 );
+
+// ── Notes (nested resource) ───────────────────────────────────────────────
+// Mount the notes sub-router under /:id/notes.  noteRoutes uses
+// `mergeParams: true` so it can read `:id` from this parent router.
+router.use('/:id/notes', noteRoutes);
 
 export default router;

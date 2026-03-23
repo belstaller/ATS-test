@@ -7,7 +7,9 @@ import applicantRoutes from './routes/applicantRoutes';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import dbRoutes from './routes/dbRoutes';
+import docsRoutes from './routes/docsRoutes';
 import { errorHandler } from './middleware/errorHandler';
+import { apiLimiter } from './middleware/rateLimiter';
 import { initializeDatabaseConnections, closeDatabaseConnections } from './db/config';
 import { runMigrations } from './db/migrations';
 import { startBackupScheduler, stopBackupScheduler } from './db/backup';
@@ -27,6 +29,9 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Apply the general rate limiter to all /api/* routes.
+app.use('/api', apiLimiter);
+
 // Health check endpoint (unauthenticated — used by load-balancers / uptime monitors)
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -41,6 +46,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/applicants', applicantRoutes);
 app.use('/api/db', dbRoutes);
+// OpenAPI spec — unauthenticated so tooling can fetch it freely
+app.use('/api/docs', docsRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
