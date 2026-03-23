@@ -1,28 +1,83 @@
+import { replicaPool } from '../db/config';
 import pool from '../db/config';
-import { Applicant, CreateApplicantDTO, UpdateApplicantDTO } from '../types/applicant';
+import {
+  Applicant,
+  ApplicantFilters,
+  CreateApplicantDTO,
+  PaginatedApplicants,
+  UpdateApplicantDTO,
+} from '../types/applicant';
 
-export async function findAll(): Promise<Applicant[]> {
-  const result = await pool.query(
-    'SELECT * FROM applicants ORDER BY created_at DESC'
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
+export async function findAll(filters: ApplicantFilters = {}): Promise<PaginatedApplicants> {
+  const page = Math.max(1, filters.page ?? DEFAULT_PAGE);
+  const limit = Math.min(Math.max(1, filters.limit ?? DEFAULT_LIMIT), MAX_LIMIT);
+  const offset = (page - 1) * limit;
+
+  const conditions: string[] = [];
+  const values: (string | number)[] = [];
+  let paramCount = 1;
+
+  if (filters.status) {
+    conditions.push(`status = $${paramCount++}`);
+    values.push(filters.status);
+  }
+
+  if (filters.position) {
+    conditions.push(`position ILIKE $${paramCount++}`);
+    values.push(`%${filters.position}%`);
+  }
+
+  if (filters.search) {
+    conditions.push(
+      `(name ILIKE $${paramCount} OR email ILIKE $${paramCount + 1} OR position ILIKE $${paramCount + 2})`
+    );
+    const term = `%${filters.search}%`;
+    values.push(term, term, term);
+    paramCount += 3;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // Use the replica for read queries
+  const countResult = await replicaPool.query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM applicants ${whereClause}`,
+    values
   );
-  return result.rows;
+  const total = parseInt(countResult.rows[0].count, 10);
+
+  const dataResult = await replicaPool.query<Applicant>(
+    `SELECT * FROM applicants ${whereClause} ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+    [...values, limit, offset]
+  );
+
+  return {
+    data: dataResult.rows,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function findById(id: number): Promise<Applicant | null> {
-  const result = await pool.query(
+  const result = await replicaPool.query<Applicant>(
     'SELECT * FROM applicants WHERE id = $1',
     [id]
   );
-  return result.rows[0] || null;
+  return result.rows[0] ?? null;
 }
 
 export async function create(data: CreateApplicantDTO): Promise<Applicant> {
   const { name, email, phone, position, status, resume_url } = data;
-  const result = await pool.query(
+  const result = await pool.query<Applicant>(
     `INSERT INTO applicants (name, email, phone, position, status, resume_url)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [name, email, phone, position, status || 'applied', resume_url]
+    [name, email, phone ?? null, position ?? null, status ?? 'applied', resume_url ?? null]
   );
   return result.rows[0];
 }
@@ -32,7 +87,7 @@ export async function update(
   data: UpdateApplicantDTO
 ): Promise<Applicant | null> {
   const fields: string[] = [];
-  const values: (string | number | undefined)[] = [];
+  const values: (string | number | null)[] = [];
   let paramCount = 1;
 
   if (data.name !== undefined) {
@@ -65,12 +120,23 @@ export async function update(
   }
 
   values.push(id);
-  const result = await pool.query(
+  const result = await pool.query<Applicant>(
     `UPDATE applicants SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
     values
   );
 
-  return result.rows[0] || null;
+  return result.rows[0] ?? null;
+}
+
+export async function updateStatus(
+  id: number,
+  status: Applicant['status']
+): Promise<Applicant | null> {
+  const result = await pool.query<Applicant>(
+    `UPDATE applicants SET status = $1 WHERE id = $2 RETURNING *`,
+    [status, id]
+  );
+  return result.rows[0] ?? null;
 }
 
 export async function remove(id: number): Promise<boolean> {

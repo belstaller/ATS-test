@@ -1,27 +1,41 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import * as applicantService from '../services/applicantService';
+import { AuthRequest } from '../middleware/auth';
+import { ApplicantFilters } from '../types/applicant';
 
 export async function getAllApplicants(
-  _req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const applicants = await applicantService.findAll();
-    res.json(applicants);
+    const { status, position, search, page, limit } = req.query as Record<
+      string,
+      string | undefined
+    >;
+
+    const filters: ApplicantFilters = {
+      status: status as ApplicantFilters['status'],
+      position,
+      search,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    };
+
+    const result = await applicantService.findAll(filters);
+    res.json(result);
   } catch (error) {
     next(error);
   }
 }
 
 export async function getApplicantById(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
-    const applicant = await applicantService.findById(parseInt(id));
+    const applicant = await applicantService.findById(parseInt(req.params.id, 10));
 
     if (!applicant) {
       res.status(404).json({ error: 'Applicant not found' });
@@ -35,13 +49,12 @@ export async function getApplicantById(
 }
 
 export async function createApplicant(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const applicantData = req.body;
-    const newApplicant = await applicantService.create(applicantData);
+    const newApplicant = await applicantService.create(req.body);
     res.status(201).json(newApplicant);
   } catch (error) {
     next(error);
@@ -49,34 +62,59 @@ export async function createApplicant(
 }
 
 export async function updateApplicant(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
-    const applicantData = req.body;
-    const updatedApplicant = await applicantService.update(parseInt(id), applicantData);
+    const updated = await applicantService.update(parseInt(req.params.id, 10), req.body);
 
-    if (!updatedApplicant) {
+    if (!updated) {
       res.status(404).json({ error: 'Applicant not found' });
       return;
     }
 
-    res.json(updatedApplicant);
+    res.json(updated);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PATCH /api/applicants/:id/status
+ * Convenience endpoint to advance an applicant through the hiring pipeline.
+ * Only the `status` field is changed; all other fields remain untouched.
+ */
+export async function updateApplicantStatus(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { status } = req.body as { status: string };
+    const updated = await applicantService.updateStatus(
+      parseInt(req.params.id, 10),
+      status as Parameters<typeof applicantService.updateStatus>[1]
+    );
+
+    if (!updated) {
+      res.status(404).json({ error: 'Applicant not found' });
+      return;
+    }
+
+    res.json(updated);
   } catch (error) {
     next(error);
   }
 }
 
 export async function deleteApplicant(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
-    const deleted = await applicantService.remove(parseInt(id));
+    const deleted = await applicantService.remove(parseInt(req.params.id, 10));
 
     if (!deleted) {
       res.status(404).json({ error: 'Applicant not found' });
