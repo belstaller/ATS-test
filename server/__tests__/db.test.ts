@@ -616,6 +616,174 @@ describe('runMigrations', () => {
     expect(ddl).toMatch(/INSERT INTO applicants/i);
     expect(ddl).toMatch(/ON CONFLICT.*DO NOTHING/i);
   });
+
+  // -------------------------------------------------------------------------
+  // Extended candidate profile schema
+  // -------------------------------------------------------------------------
+
+  it('applicants table includes personal detail columns', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/location/i);
+    expect(ddl).toMatch(/phone/i);
+  });
+
+  it('applicants table includes professional profile columns', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/experience_years/i);
+    expect(ddl).toMatch(/education/i);
+    expect(ddl).toMatch(/skills/i);
+  });
+
+  it('applicants table includes external link columns', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/resume_url/i);
+    expect(ddl).toMatch(/linkedin_url/i);
+    expect(ddl).toMatch(/github_url/i);
+    expect(ddl).toMatch(/portfolio_url/i);
+  });
+
+  it('applicants table includes hiring pipeline columns', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/salary_expected/i);
+    expect(ddl).toMatch(/availability_date/i);
+    expect(ddl).toMatch(/source/i);
+    expect(ddl).toMatch(/assigned_to/i);
+  });
+
+  it('applicants table enforces the source CHECK constraint', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    // All valid source values must appear in the DDL constraint
+    for (const src of ['direct', 'linkedin', 'referral', 'job_board', 'agency', 'github', 'other']) {
+      expect(ddl).toContain(src);
+    }
+  });
+
+  it('creates the candidate_tags table', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/CREATE TABLE IF NOT EXISTS candidate_tags/i);
+  });
+
+  it('candidate_tags table has name and color columns', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/color/i);
+    expect(ddl).toMatch(/idx_candidate_tags_name/i);
+  });
+
+  it('creates the applicant_tag_assignments join table', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/CREATE TABLE IF NOT EXISTS applicant_tag_assignments/i);
+  });
+
+  it('applicant_tag_assignments references both applicants and candidate_tags', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/REFERENCES applicants/i);
+    expect(ddl).toMatch(/REFERENCES candidate_tags/i);
+    // The join table must cascade deletes so orphaned rows are never left behind
+    expect(ddl).toMatch(/ON DELETE CASCADE/i);
+  });
+
+  it('creates GIN index on skills array column', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/idx_applicants_skills/i);
+    expect(ddl).toMatch(/USING GIN \(skills\)/i);
+  });
+
+  it('creates GIN full-text search index on applicants', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/idx_applicants_fts/i);
+    expect(ddl).toMatch(/to_tsvector/i);
+  });
+
+  it('creates indexes for assignment, source and availability_date columns', async () => {
+    const client = makeFakeClient();
+    fakePrimary.connect.mockResolvedValueOnce(client);
+
+    await runMigrations();
+
+    const ddl = (client.query as jest.Mock).mock.calls
+      .map((c: [string]) => c[0])
+      .join('\n');
+    expect(ddl).toMatch(/idx_applicants_assigned_to/i);
+    expect(ddl).toMatch(/idx_applicants_source/i);
+    expect(ddl).toMatch(/idx_applicants_availability_date/i);
+  });
 });
 
 // ===========================================================================
