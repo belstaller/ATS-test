@@ -1,4 +1,46 @@
 // ---------------------------------------------------------------------------
+// Resume Upload — types
+// ---------------------------------------------------------------------------
+
+/** Supported MIME types for resume uploads. */
+export const RESUME_MIME_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+] as const;
+
+export type ResumeMimeType = (typeof RESUME_MIME_TYPES)[number];
+
+/** Supported file extensions for resume uploads. */
+export const RESUME_EXTENSIONS = ['.pdf', '.docx', '.txt'] as const;
+
+export type ResumeExtension = (typeof RESUME_EXTENSIONS)[number];
+
+/**
+ * A resume upload record as stored in the database.
+ */
+export interface ResumeUpload {
+  /** Auto-incrementing primary key. */
+  id: number;
+  /** Original filename as supplied by the client. */
+  original_filename: string;
+  /** Stored filename on disk (UUID-based, collision-safe). */
+  stored_filename: string;
+  /** Absolute path to the file on the server's filesystem. */
+  file_path: string;
+  /** MIME type of the uploaded file. */
+  mime_type: ResumeMimeType;
+  /** File size in bytes. */
+  file_size: number;
+  /** FK → users.id — the user who performed the upload. */
+  uploaded_by: number;
+  /** FK → applicants.id — the applicant this resume belongs to (optional). */
+  applicant_id?: number;
+  /** Audit timestamp. */
+  created_at: Date;
+}
+
+// ---------------------------------------------------------------------------
 // Resume Parsing — types
 // ---------------------------------------------------------------------------
 

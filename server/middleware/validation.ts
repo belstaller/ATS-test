@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import {
   APPLICANT_STATUSES,
   APPLICANT_SOURCES,
@@ -7,6 +8,7 @@ import {
   UpdateApplicantDTO,
 } from '../types/applicant';
 import { UserRole } from '../types/user';
+import { RESUME_MIME_TYPES, ResumeMimeType } from '../types/resume';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -790,6 +792,137 @@ export function validateResumeParseRequest(
   }
 
   next();
+}
+
+// ---------------------------------------------------------------------------
+// Resume Upload
+// ---------------------------------------------------------------------------
+
+/** Maximum allowed resume file size: 10 MB. */
+const RESUME_MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+/**
+ * Multer instance configured for in-memory storage of resume uploads.
+ *
+ * Limits:
+ *  - Single file per request (field name: `resume`)
+ *  - Max 10 MB per file
+ *  - Accepted types: PDF, DOCX, TXT
+ */
+export const resumeUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: RESUME_MAX_FILE_SIZE },
+  fileFilter(
+    _req: Request,
+    file: Express.Multer.File,
+    callback: multer.FileFilterCallback
+  ) {
+    if (RESUME_MIME_TYPES.includes(file.mimetype as ResumeMimeType)) {
+      callback(null, true);
+    } else {
+      callback(
+        new Error(
+          `Unsupported file type "${file.mimetype}". ` +
+            'Accepted types: PDF, DOCX, TXT.'
+        )
+      );
+    }
+  },
+});
+
+/**
+ * Validates that the resume file was included in the multipart request
+ * and performs additional checks on the uploaded file metadata.
+ *
+ * Must be used **after** `resumeUpload.single('resume')` in the middleware
+ * chain so that `req.file` is populated.
+ */
+export function validateResumeUpload(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  if (!req.file) {
+    res.status(400).json({
+      error: 'A resume file is required. Upload a PDF, DOCX, or TXT file using the "resume" field.',
+    });
+    return;
+  }
+
+  // Guard against empty files
+  if (req.file.size === 0) {
+    res.status(400).json({ error: 'Uploaded file must not be empty.' });
+    return;
+  }
+
+  // Validate optional applicant_id query / body parameter
+  const rawApplicantId =
+    (req.body as Record<string, unknown>).applicant_id ??
+    (req.query as Record<string, unknown>).applicant_id;
+
+  if (rawApplicantId !== undefined && rawApplicantId !== null && rawApplicantId !== '') {
+    const n = Number(rawApplicantId);
+    if (!Number.isInteger(n) || n <= 0) {
+      res
+        .status(400)
+        .json({ error: 'applicant_id must be a positive integer when provided.' });
+      return;
+    }
+  }
+
+  next();
+}
+
+/**
+ * Express error-handling middleware that converts multer-specific errors
+ * (file-too-large, wrong MIME type, missing boundary) into consistent 400
+ * responses.
+ *
+ * Place this **after** `resumeUpload.single()` in the middleware chain so it
+ * only catches errors from the upload routes.
+ */
+export function handleUploadError(
+  err: Error,
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      res.status(400).json({
+        error: `File too large. Maximum allowed size is ${RESUME_MAX_FILE_SIZE / (1024 * 1024)} MB.`,
+      });
+      return;
+    }
+    res.status(400).json({ error: `Upload error: ${err.message}` });
+    return;
+  }
+
+  // File-filter rejection (wrong MIME type) is a plain Error thrown by
+  // multer's fileFilter callback.
+  if (
+    err instanceof Error &&
+    err.message.startsWith('Unsupported file type')
+  ) {
+    res.status(400).json({ error: err.message });
+    return;
+  }
+
+  // Busboy / multipart parsing errors (e.g. missing boundary) should surface
+  // as 400 Bad Request rather than 500.
+  if (
+    err instanceof Error &&
+    (err.message.includes('Boundary not found') ||
+      err.message.includes('Multipart:'))
+  ) {
+    res.status(400).json({
+      error:
+        'A resume file is required. Upload a PDF, DOCX, or TXT file using the "resume" field.',
+    });
+    return;
+  }
+
+  next(err);
 }
 
 // ---------------------------------------------------------------------------

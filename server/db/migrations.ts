@@ -214,6 +214,38 @@ export async function runMigrations() {
     `);
 
     // -----------------------------------------------------------------------
+    // resume_uploads — stores metadata for uploaded resume files
+    // -----------------------------------------------------------------------
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS resume_uploads (
+        id                SERIAL        PRIMARY KEY,
+        original_filename VARCHAR(255)  NOT NULL,
+        stored_filename   VARCHAR(255)  NOT NULL UNIQUE,
+        file_path         TEXT          NOT NULL,
+        mime_type         VARCHAR(100)  NOT NULL
+                            CHECK (mime_type IN (
+                              'application/pdf',
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                              'text/plain'
+                            )),
+        file_size         INTEGER       NOT NULL CHECK (file_size > 0),
+        uploaded_by       INTEGER       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        applicant_id      INTEGER       REFERENCES applicants(id) ON DELETE SET NULL,
+        created_at        TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_resume_uploads_uploaded_by
+        ON resume_uploads(uploaded_by);
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_resume_uploads_applicant_id
+        ON resume_uploads(applicant_id);
+    `);
+
+    // -----------------------------------------------------------------------
     // Seed data
     // -----------------------------------------------------------------------
     await client.query(`
