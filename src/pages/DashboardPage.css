@@ -1,0 +1,602 @@
+/* ============================================================================
+   ATS Dashboard Page
+   Responsive layout: 3-column → 2-column → 1-column
+   ============================================================================ */
+
+/* ── Page wrapper ─────────────────────────────────────────────────────────── */
+.dashboard-page {
+  padding: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── Section headings ─────────────────────────────────────────────────────── */
+.section-heading {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.section-heading--card {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* ── Dashboard header ─────────────────────────────────────────────────────── */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-header__title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin-bottom: 0.375rem;
+}
+
+.dashboard-header__subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.dashboard-header__actions {
+  flex-shrink: 0;
+}
+
+/* ── Overview stat widgets grid ───────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+/* Stat widget card */
+.stat-widget {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  position: relative;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.stat-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-widget__icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.stat-widget__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-widget__value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.stat-widget__label {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-widget__link {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  font-size: 0; /* hide text visually – aria-label carries it */
+  color: transparent;
+}
+
+.stat-widget__link:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Stat widget accent colours */
+.widget--total {
+  border-left: 4px solid var(--primary-color);
+}
+
+.widget--active {
+  border-left: 4px solid var(--warning);
+}
+
+.widget--new {
+  border-left: 4px solid #8b5cf6;
+}
+
+.widget--hire-rate {
+  border-left: 4px solid var(--success);
+}
+
+/* ── Pipeline status widgets grid ─────────────────────────────────────────── */
+.status-widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
+}
+
+.status-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 1.25rem 0.75rem;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+  text-align: center;
+}
+
+.status-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.status-widget:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+.status-widget__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.status-widget__count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.status-widget__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Status widget accent colours */
+.widget--applied {
+  border-top: 3px solid #0ea5e9;
+}
+
+.widget--screening {
+  border-top: 3px solid #8b5cf6;
+}
+
+.widget--interview {
+  border-top: 3px solid var(--warning);
+}
+
+.widget--offer {
+  border-top: 3px solid var(--success);
+}
+
+.widget--hired {
+  border-top: 3px solid #16a34a;
+}
+
+.widget--rejected {
+  border-top: 3px solid var(--error);
+}
+
+/* ── Main content grid (pipeline + recent) ────────────────────────────────── */
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ── Pipeline breakdown section ───────────────────────────────────────────── */
+.pipeline-section {
+  /* inherits .card */
+}
+
+.pipeline-bar__empty {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  padding: 1rem 0;
+}
+
+/* Stacked bar */
+.pipeline-bar__track {
+  display: flex;
+  height: 1.25rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--border-color);
+  margin-bottom: 1.25rem;
+}
+
+.pipeline-bar__segment {
+  height: 100%;
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.pipeline-bar__segment--applied    { background: #0ea5e9; }
+.pipeline-bar__segment--screening  { background: #8b5cf6; }
+.pipeline-bar__segment--interview  { background: var(--warning); }
+.pipeline-bar__segment--offer      { background: var(--success); }
+.pipeline-bar__segment--hired      { background: #16a34a; }
+
+/* Legend */
+.pipeline-bar__legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.pipeline-bar__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.pipeline-bar__legend-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pipeline-bar__legend-dot--applied    { background: #0ea5e9; }
+.pipeline-bar__legend-dot--screening  { background: #8b5cf6; }
+.pipeline-bar__legend-dot--interview  { background: var(--warning); }
+.pipeline-bar__legend-dot--offer      { background: var(--success); }
+.pipeline-bar__legend-dot--hired      { background: #16a34a; }
+
+.pipeline-bar__legend-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.pipeline-bar__legend-count {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ── Recent applicants section ────────────────────────────────────────────── */
+.recent-section {
+  /* inherits .card */
+}
+
+.recent-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Override the default bottom margin since the header handles the divider */
+.recent-section .section-heading--card {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.recent-section__see-all {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+
+.recent-section__see-all:hover {
+  color: var(--primary-hover);
+}
+
+.recent-section__see-all:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.recent-applicants__empty {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  padding: 0.5rem 0;
+}
+
+/* Recent list */
+.recent-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.recent-list__item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.recent-list__item:first-child {
+  padding-top: 0;
+}
+
+/* Avatar */
+.recent-list__avatar {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.recent-list__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-list__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+.recent-list__name:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.recent-list__name:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.recent-list__position {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.125rem;
+}
+
+.recent-list__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* Inline status pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.status-pill--applied    { background: #e0f2fe; color: #0369a1; }
+.status-pill--screening  { background: #ede9fe; color: #6d28d9; }
+.status-pill--interview  { background: #fef3c7; color: #92400e; }
+.status-pill--offer      { background: #d1fae5; color: #065f46; }
+.status-pill--hired      { background: #bbf7d0; color: #14532d; }
+.status-pill--rejected   { background: #fee2e2; color: #991b1b; }
+
+.recent-list__date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ── Quick actions grid ───────────────────────────────────────────────────── */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.quick-action-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  border: 1px solid var(--border-color);
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+}
+
+.quick-action-card:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+.quick-action-card__icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.quick-action-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-action-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.quick-action-card__desc {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.quick-action-card__arrow {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.quick-action-card:hover .quick-action-card__arrow {
+  color: var(--primary-color);
+  transform: translateX(3px);
+}
+
+/* ============================================================================
+   Responsive breakpoints
+   ============================================================================ */
+
+/* ── Large tablets / small desktops (≤ 1100px) ────────────────────────────── */
+@media (max-width: 1100px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .status-widgets-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Medium tablets (≤ 900px) ─────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .dashboard-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Small tablets / large phones (≤ 700px) ───────────────────────────────── */
+@media (max-width: 700px) {
+  .status-widgets-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-header__actions {
+    width: 100%;
+  }
+
+  .dashboard-header__actions .btn {
+    width: 100%;
+    text-align: center;
+    display: block;
+  }
+}
+
+/* ── Mobile phones (≤ 480px) ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-widgets-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-header__title {
+    font-size: 1.5rem;
+  }
+
+  .stat-widget__value {
+    font-size: 1.75rem;
+  }
+
+  .recent-list__meta {
+    display: none; /* hide meta on very small screens to avoid overflow */
+  }
+
+  .quick-action-card__desc {
+    display: none; /* simplify cards on small screens */
+  }
+}
+
+/* ── Reduced-motion preference ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .stat-widget,
+  .status-widget,
+  .quick-action-card,
+  .pipeline-bar__segment,
+  .quick-action-card__arrow {
+    transition: none;
+  }
+}

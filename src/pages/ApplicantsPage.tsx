@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ApplicantCard from '../components/ApplicantCard';
 import { Applicant, ApplicantFilters, APPLICANT_STATUSES, APPLICANT_SOURCES } from '../types/applicant';
 import { applicantService } from '../services/applicantService';
@@ -14,9 +15,12 @@ interface Pagination {
 }
 
 function ApplicantsPage() {
+  const [searchParams] = useSearchParams();
+
   // ── Filter state ────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  // Pre-populate status from ?status= query param (e.g. links from dashboard)
+  const [status, setStatus] = useState(() => searchParams.get('status') ?? '');
   const [source, setSource] = useState('');
   const [location, setLocation] = useState('');
   const [position, setPosition] = useState('');
@@ -38,7 +42,14 @@ function ApplicantsPage() {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Derived filters ─────────────────────────────────────────────────────
-  const [activeFilters, setActiveFilters] = useState<ApplicantFilters>({ page: 1, limit: PAGE_SIZE });
+  const [activeFilters, setActiveFilters] = useState<ApplicantFilters>(() => {
+    const initialStatus = searchParams.get('status') ?? undefined;
+    return {
+      page: 1,
+      limit: PAGE_SIZE,
+      ...(initialStatus ? { status: initialStatus as ApplicantFilters['status'] } : {}),
+    };
+  });
 
   /**
    * Schedules a filter update after the debounce window.

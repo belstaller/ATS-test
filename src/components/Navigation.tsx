@@ -22,7 +22,7 @@ function Navigation() {
           <ul className="nav-links">
             <li>
               <Link to="/" className="nav-link">
-                Home
+                {isAuthenticated ? 'Dashboard' : 'Home'}
               </Link>
             </li>
             {isAuthenticated && (
