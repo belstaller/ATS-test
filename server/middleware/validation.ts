@@ -517,6 +517,160 @@ export function validateUserQuery(req: Request, res: Response, next: NextFunctio
 }
 
 // ---------------------------------------------------------------------------
+// LinkedIn
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates POST /api/linkedin/sync.
+ *
+ * Requires:
+ *  - `profile` — an object with at least a non-empty `profileId` string.
+ *  - `applicantId` — optional positive integer.
+ */
+export function validateLinkedInSync(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const { profile, applicantId } = req.body as Record<string, unknown>;
+
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+    res.status(400).json({ error: 'profile is required and must be an object' });
+    return;
+  }
+
+  const p = profile as Record<string, unknown>;
+
+  if (!p.profileId || typeof p.profileId !== 'string' || p.profileId.trim().length === 0) {
+    res.status(400).json({ error: 'profile.profileId is required and must be a non-empty string' });
+    return;
+  }
+
+  if (p.profileId.trim().length > 255) {
+    res.status(400).json({ error: 'profile.profileId must not exceed 255 characters' });
+    return;
+  }
+
+  if (p.emailAddress !== undefined && p.emailAddress !== null) {
+    if (typeof p.emailAddress !== 'string' || !isValidEmail(p.emailAddress)) {
+      res.status(400).json({ error: 'profile.emailAddress must be a valid email address' });
+      return;
+    }
+  }
+
+  if (p.profileUrl !== undefined && p.profileUrl !== null) {
+    if (typeof p.profileUrl !== 'string' || !isValidUrl(p.profileUrl)) {
+      res.status(400).json({ error: 'profile.profileUrl must be a valid HTTP/HTTPS URL' });
+      return;
+    }
+  }
+
+  if (p.skills !== undefined && p.skills !== null) {
+    if (!Array.isArray(p.skills)) {
+      res.status(400).json({ error: 'profile.skills must be an array of strings' });
+      return;
+    }
+    for (const skill of p.skills as unknown[]) {
+      if (typeof skill !== 'string') {
+        res.status(400).json({ error: 'Each entry in profile.skills must be a string' });
+        return;
+      }
+    }
+  }
+
+  if (p.positions !== undefined && p.positions !== null) {
+    if (!Array.isArray(p.positions)) {
+      res.status(400).json({ error: 'profile.positions must be an array' });
+      return;
+    }
+    for (const pos of p.positions as unknown[]) {
+      if (typeof pos !== 'object' || Array.isArray(pos) || pos === null) {
+        res.status(400).json({ error: 'Each entry in profile.positions must be an object' });
+        return;
+      }
+    }
+  }
+
+  if (p.educations !== undefined && p.educations !== null) {
+    if (!Array.isArray(p.educations)) {
+      res.status(400).json({ error: 'profile.educations must be an array' });
+      return;
+    }
+    for (const edu of p.educations as unknown[]) {
+      if (typeof edu !== 'object' || Array.isArray(edu) || edu === null) {
+        res.status(400).json({ error: 'Each entry in profile.educations must be an object' });
+        return;
+      }
+    }
+  }
+
+  if (p.yearsOfExperience !== undefined && p.yearsOfExperience !== null) {
+    if (!isNonNegativeInt(p.yearsOfExperience)) {
+      res
+        .status(400)
+        .json({ error: 'profile.yearsOfExperience must be a non-negative integer' });
+      return;
+    }
+  }
+
+  if (applicantId !== undefined && applicantId !== null) {
+    if (!isPositiveInt(applicantId)) {
+      res.status(400).json({ error: 'applicantId must be a positive integer' });
+      return;
+    }
+  }
+
+  next();
+}
+
+/**
+ * Validates POST /api/linkedin/sync/batch.
+ *
+ * Requires:
+ *  - `profiles` — a non-empty array (max 100 entries).
+ *  - Each item must be an object with a non-empty `profileId` string.
+ */
+export function validateLinkedInBatchSync(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const { profiles } = req.body as Record<string, unknown>;
+
+  if (!Array.isArray(profiles)) {
+    res.status(400).json({ error: 'profiles must be a non-empty array' });
+    return;
+  }
+
+  if (profiles.length === 0) {
+    res.status(400).json({ error: 'profiles array must not be empty' });
+    return;
+  }
+
+  if (profiles.length > 100) {
+    res.status(400).json({ error: 'profiles array must not exceed 100 entries per request' });
+    return;
+  }
+
+  for (let i = 0; i < profiles.length; i++) {
+    const item = profiles[i] as unknown;
+    if (typeof item !== 'object' || Array.isArray(item) || item === null) {
+      res.status(400).json({ error: `profiles[${i}] must be an object` });
+      return;
+    }
+    const p = item as Record<string, unknown>;
+    if (!p.profileId || typeof p.profileId !== 'string' || p.profileId.trim().length === 0) {
+      res
+        .status(400)
+        .json({ error: `profiles[${i}].profileId is required and must be a non-empty string` });
+      return;
+    }
+  }
+
+  next();
+}
+
+// ---------------------------------------------------------------------------
 // Keep the old export alias so existing imports don't break
 // ---------------------------------------------------------------------------
 

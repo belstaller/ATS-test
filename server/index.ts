@@ -8,6 +8,7 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import dbRoutes from './routes/dbRoutes';
 import docsRoutes from './routes/docsRoutes';
+import linkedinRoutes from './routes/linkedinRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
 import { initializeDatabaseConnections, closeDatabaseConnections } from './db/config';
@@ -45,6 +46,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/applicants', applicantRoutes);
+app.use('/api/linkedin', linkedinRoutes);
 app.use('/api/db', dbRoutes);
 // OpenAPI spec — unauthenticated so tooling can fetch it freely
 app.use('/api/docs', docsRoutes);

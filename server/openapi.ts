@@ -347,6 +347,148 @@ export const openApiSpec = {
         },
       },
 
+      // ── LinkedIn ─────────────────────────────────────────────────────────
+      LinkedInPosition: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', example: 'Senior Software Engineer' },
+          companyName: { type: 'string', example: 'Acme Corp' },
+          startYear: { type: 'integer', example: 2020 },
+          endYear: { type: 'integer', nullable: true, example: null },
+          description: { type: 'string', example: 'Led backend platform team.' },
+        },
+      },
+
+      LinkedInEducation: {
+        type: 'object',
+        properties: {
+          schoolName: { type: 'string', example: 'MIT' },
+          degreeName: { type: 'string', example: 'B.Sc.' },
+          fieldOfStudy: { type: 'string', example: 'Computer Science' },
+          endYear: { type: 'integer', nullable: true, example: 2018 },
+        },
+      },
+
+      LinkedInProfile: {
+        type: 'object',
+        required: ['profileId'],
+        properties: {
+          profileId: {
+            type: 'string',
+            example: 'alice-example-123abc',
+            description: "LinkedIn member's unique identifier.",
+          },
+          firstName: { type: 'string', example: 'Alice' },
+          lastName: { type: 'string', example: 'Example' },
+          emailAddress: {
+            type: 'string',
+            format: 'email',
+            example: 'alice@example.com',
+          },
+          location: { type: 'string', example: 'San Francisco, CA' },
+          headline: {
+            type: 'string',
+            example: 'Senior Software Engineer at Acme',
+          },
+          summary: { type: 'string', example: 'Passionate engineer with 8 years of experience.' },
+          profileUrl: {
+            type: 'string',
+            format: 'uri',
+            example: 'https://linkedin.com/in/alice-example-123abc',
+          },
+          positions: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/LinkedInPosition' },
+          },
+          educations: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/LinkedInEducation' },
+          },
+          skills: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['TypeScript', 'Node.js', 'PostgreSQL'],
+          },
+          yearsOfExperience: {
+            type: 'integer',
+            minimum: 0,
+            example: 8,
+            description: 'Pre-computed total years of experience.',
+          },
+        },
+      },
+
+      LinkedInSyncRequest: {
+        type: 'object',
+        required: ['profile'],
+        properties: {
+          profile: { $ref: '#/components/schemas/LinkedInProfile' },
+          applicantId: {
+            type: 'integer',
+            minimum: 1,
+            nullable: true,
+            example: 42,
+            description:
+              'Optional ATS applicant id. When provided, that specific ' +
+              'record is targeted; when absent the service resolves by email.',
+          },
+        },
+      },
+
+      LinkedInSyncResult: {
+        type: 'object',
+        properties: {
+          action: {
+            type: 'string',
+            enum: ['created', 'updated'],
+            example: 'updated',
+          },
+          applicantId: { type: 'integer', example: 42 },
+          linkedinProfileId: { type: 'string', example: 'alice-example-123abc' },
+          message: {
+            type: 'string',
+            example: 'Updated applicant "Alice Example" (id: 42) from LinkedIn profile "alice-example-123abc"',
+          },
+        },
+      },
+
+      LinkedInBatchSyncRequest: {
+        type: 'object',
+        required: ['profiles'],
+        properties: {
+          profiles: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 100,
+            items: { $ref: '#/components/schemas/LinkedInProfile' },
+          },
+        },
+      },
+
+      LinkedInBatchSyncResponse: {
+        type: 'object',
+        properties: {
+          total: { type: 'integer', example: 3 },
+          succeeded: { type: 'integer', example: 2 },
+          failed: { type: 'integer', example: 1 },
+          results: {
+            type: 'array',
+            items: {
+              oneOf: [
+                { $ref: '#/components/schemas/LinkedInSyncResult' },
+                {
+                  type: 'object',
+                  properties: {
+                    linkedinProfileId: { type: 'string' },
+                    error: { type: 'string' },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+
       // ── Database / Backup ────────────────────────────────────────────────
       BackupMetadata: {
         type: 'object',
@@ -527,6 +669,11 @@ export const openApiSpec = {
     {
       name: 'Database',
       description: 'Database health, backups, and restore — admin only.',
+    },
+    {
+      name: 'LinkedIn',
+      description:
+        'Sync LinkedIn profile data with ATS candidate records — admin and recruiter only.',
     },
   ],
 
@@ -1068,6 +1215,86 @@ export const openApiSpec = {
           401: { $ref: '#/components/responses/Unauthorized' },
           403: { $ref: '#/components/responses/Forbidden' },
           404: { $ref: '#/components/responses/NotFound' },
+        },
+      },
+    },
+
+    // ── LinkedIn ─────────────────────────────────────────────────────────────
+    '/linkedin/sync': {
+      post: {
+        tags: ['LinkedIn'],
+        summary: 'Sync a LinkedIn profile with the ATS',
+        description:
+          'Maps a LinkedIn profile to an ATS candidate record. ' +
+          'When `applicantId` is supplied that record is updated directly; ' +
+          'otherwise the service searches by email and creates a new applicant ' +
+          'if no match is found. ' +
+          'Returns 201 when a new record is created, 200 on update. ' +
+          'Requires admin or recruiter role.',
+        operationId: 'syncLinkedInProfile',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/LinkedInSyncRequest' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Existing applicant updated with LinkedIn data.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/LinkedInSyncResult' },
+              },
+            },
+          },
+          201: {
+            description: 'New applicant created from LinkedIn data.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/LinkedInSyncResult' },
+              },
+            },
+          },
+          400: { $ref: '#/components/responses/BadRequest' },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          403: { $ref: '#/components/responses/Forbidden' },
+          404: { $ref: '#/components/responses/NotFound' },
+        },
+      },
+    },
+
+    '/linkedin/sync/batch': {
+      post: {
+        tags: ['LinkedIn'],
+        summary: 'Batch-sync LinkedIn profiles with the ATS',
+        description:
+          'Syncs up to 100 LinkedIn profiles in a single request. ' +
+          'Each profile is processed independently; failures are reported ' +
+          'per-item rather than aborting the whole batch. ' +
+          'Requires admin or recruiter role.',
+        operationId: 'syncLinkedInProfileBatch',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/LinkedInBatchSyncRequest' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Batch sync completed (check `failed` count for partial errors).',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/LinkedInBatchSyncResponse' },
+              },
+            },
+          },
+          400: { $ref: '#/components/responses/BadRequest' },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          403: { $ref: '#/components/responses/Forbidden' },
         },
       },
     },
