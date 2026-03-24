@@ -10,6 +10,15 @@ export type ApplicantStatus =
   | 'hired'
   | 'rejected';
 
+export const APPLICANT_STATUSES: ApplicantStatus[] = [
+  'applied',
+  'screening',
+  'interview',
+  'offer',
+  'hired',
+  'rejected',
+];
+
 /**
  * The channel through which a candidate entered the pipeline.
  */
@@ -21,6 +30,16 @@ export type ApplicantSource =
   | 'agency'
   | 'github'
   | 'other';
+
+export const APPLICANT_SOURCES: ApplicantSource[] = [
+  'direct',
+  'linkedin',
+  'referral',
+  'job_board',
+  'agency',
+  'github',
+  'other',
+];
 
 // ---------------------------------------------------------------------------
 // Core entity
@@ -109,4 +128,34 @@ export interface UpdateApplicantDTO {
   availability_date?: string;
   source?: ApplicantSource;
   assigned_to?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Query / pagination helpers  (mirror server/types/applicant.ts)
+// ---------------------------------------------------------------------------
+
+export interface ApplicantFilters {
+  status?: ApplicantStatus;
+  source?: ApplicantSource;
+  position?: string;
+  location?: string;
+  /** Comma-separated skill keywords — ALL must be present on the candidate. */
+  skills?: string;
+  assigned_to?: number;
+  /** Minimum years of experience (inclusive). */
+  experience_years_min?: number;
+  /** Maximum years of experience (inclusive). */
+  experience_years_max?: number;
+  /** Free-text search across name, email, position and location. */
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedApplicants {
+  data: Applicant[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }

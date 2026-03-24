@@ -9,14 +9,33 @@ export async function getAllApplicants(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { status, position, search, page, limit } = req.query as Record<
-      string,
-      string | undefined
-    >;
+    const {
+      status,
+      source,
+      position,
+      location,
+      skills,
+      assigned_to,
+      experience_years_min,
+      experience_years_max,
+      search,
+      page,
+      limit,
+    } = req.query as Record<string, string | undefined>;
 
     const filters: ApplicantFilters = {
       status: status as ApplicantFilters['status'],
+      source: source as ApplicantFilters['source'],
       position,
+      location,
+      skills,
+      assigned_to: assigned_to ? parseInt(assigned_to, 10) : undefined,
+      experience_years_min: experience_years_min
+        ? parseInt(experience_years_min, 10)
+        : undefined,
+      experience_years_max: experience_years_max
+        ? parseInt(experience_years_max, 10)
+        : undefined,
       search,
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,

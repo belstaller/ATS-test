@@ -400,7 +400,18 @@ export function validateApplicantQuery(
   res: Response,
   next: NextFunction
 ): void {
-  const { status, source, page, limit } = req.query as Record<string, string | undefined>;
+  const {
+    status,
+    source,
+    location,
+    skills,
+    assigned_to,
+    experience_years_min,
+    experience_years_max,
+    search,
+    page,
+    limit,
+  } = req.query as Record<string, string | undefined>;
 
   if (status !== undefined && !APPLICANT_STATUSES.includes(status as ApplicantStatus)) {
     res
@@ -414,6 +425,82 @@ export function validateApplicantQuery(
       .status(400)
       .json({ error: `source query param must be one of: ${APPLICANT_SOURCES.join(', ')}` });
     return;
+  }
+
+  if (location !== undefined) {
+    if (typeof location !== 'string' || location.trim().length === 0) {
+      res.status(400).json({ error: 'location query param must be a non-empty string' });
+      return;
+    }
+    if (location.trim().length > 255) {
+      res.status(400).json({ error: 'location query param must not exceed 255 characters' });
+      return;
+    }
+  }
+
+  if (skills !== undefined) {
+    if (typeof skills !== 'string' || skills.trim().length === 0) {
+      res.status(400).json({ error: 'skills query param must be a non-empty string' });
+      return;
+    }
+    // Validate each comma-separated skill token
+    const skillList = skills
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (skillList.length > 50) {
+      res.status(400).json({ error: 'skills query param must not contain more than 50 entries' });
+      return;
+    }
+    for (const skill of skillList) {
+      if (skill.length > 100) {
+        res
+          .status(400)
+          .json({ error: 'Each skill in the skills query param must not exceed 100 characters' });
+        return;
+      }
+    }
+  }
+
+  if (assigned_to !== undefined && !isPositiveInt(assigned_to)) {
+    res.status(400).json({ error: 'assigned_to query param must be a positive integer' });
+    return;
+  }
+
+  if (experience_years_min !== undefined && !isNonNegativeInt(experience_years_min)) {
+    res
+      .status(400)
+      .json({ error: 'experience_years_min must be a non-negative integer' });
+    return;
+  }
+
+  if (experience_years_max !== undefined && !isNonNegativeInt(experience_years_max)) {
+    res
+      .status(400)
+      .json({ error: 'experience_years_max must be a non-negative integer' });
+    return;
+  }
+
+  if (
+    experience_years_min !== undefined &&
+    experience_years_max !== undefined &&
+    parseInt(experience_years_min, 10) > parseInt(experience_years_max, 10)
+  ) {
+    res
+      .status(400)
+      .json({ error: 'experience_years_min must not be greater than experience_years_max' });
+    return;
+  }
+
+  if (search !== undefined) {
+    if (typeof search !== 'string' || search.trim().length === 0) {
+      res.status(400).json({ error: 'search query param must be a non-empty string' });
+      return;
+    }
+    if (search.trim().length > 255) {
+      res.status(400).json({ error: 'search query param must not exceed 255 characters' });
+      return;
+    }
   }
 
   if (page !== undefined && !isPositiveInt(page)) {

@@ -42,8 +42,18 @@ export async function findAll(filters: ApplicantFilters = {}): Promise<Paginated
   }
 
   if (filters.assigned_to) {
-    conditions.push(`assigned_to = $${paramCount++}`);
+    conditions.push(`assigned_to = ${paramCount++}`);
     values.push(filters.assigned_to);
+  }
+
+  if (filters.experience_years_min !== undefined) {
+    conditions.push(`experience_years >= ${paramCount++}`);
+    values.push(filters.experience_years_min);
+  }
+
+  if (filters.experience_years_max !== undefined) {
+    conditions.push(`experience_years <= ${paramCount++}`);
+    values.push(filters.experience_years_max);
   }
 
   // Skill filter — the array column must contain ALL of the requested skills.

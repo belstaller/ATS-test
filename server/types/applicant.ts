@@ -143,9 +143,14 @@ export interface ApplicantFilters {
   source?: ApplicantSource;
   position?: string;
   location?: string;
-  /** Comma-separated skill keywords — any match is sufficient. */
+  /** Comma-separated skill keywords — stored skills must contain ALL listed. */
   skills?: string;
   assigned_to?: number;
+  /** Minimum years of experience (inclusive). */
+  experience_years_min?: number;
+  /** Maximum years of experience (inclusive). */
+  experience_years_max?: number;
+  /** Free-text search across name, email, position and location. */
   search?: string;
   page?: number;
   limit?: number;
