@@ -347,7 +347,106 @@ export const openApiSpec = {
         },
       },
 
-      // ── LinkedIn ─────────────────────────────────────────────────────────
+      // ── LinkedIn OAuth ───────────────────────────────────────────────────
+      LinkedInAuthorizationUrlResponse: {
+        type: 'object',
+        properties: {
+          authorizationUrl: {
+            type: 'string',
+            format: 'uri',
+            example: 'https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=…',
+            description: 'Redirect the user\'s browser to this URL to begin the OAuth flow.',
+          },
+          state: {
+            type: 'string',
+            example: 'a3f8c2d1e4b7',
+            description: 'CSRF state token — must be passed back in POST /oauth/token.',
+          },
+        },
+        required: ['authorizationUrl', 'state'],
+      },
+
+      LinkedInTokenExchangeRequest: {
+        type: 'object',
+        required: ['code', 'state'],
+        properties: {
+          code: {
+            type: 'string',
+            example: 'AQT8s…',
+            description: 'Authorization code returned by LinkedIn\'s redirect.',
+          },
+          state: {
+            type: 'string',
+            example: 'a3f8c2d1e4b7',
+            description: 'CSRF state token returned by GET /oauth/authorize.',
+          },
+        },
+      },
+
+      LinkedInOAuthToken: {
+        type: 'object',
+        properties: {
+          accessToken: {
+            type: 'string',
+            example: 'AQXt…',
+            description: 'LinkedIn access token to pass to POST /oauth/fetch.',
+          },
+          expiresAt: {
+            type: 'string',
+            format: 'date-time',
+            example: '2024-12-31T23:59:59.000Z',
+            description: 'UTC timestamp when the access token expires.',
+          },
+          scope: {
+            type: 'string',
+            example: 'openid profile email',
+            description: 'Space-separated list of OAuth scopes granted.',
+          },
+        },
+        required: ['accessToken', 'expiresAt', 'scope'],
+      },
+
+      LinkedInFetchRequest: {
+        type: 'object',
+        required: ['accessToken'],
+        properties: {
+          accessToken: {
+            type: 'string',
+            example: 'AQXt…',
+            description: 'Access token obtained from POST /oauth/token.',
+          },
+          sync: {
+            type: 'boolean',
+            default: true,
+            description:
+              'When true the fetched profile is automatically synced into the ATS. Defaults to true.',
+          },
+          applicantId: {
+            type: 'integer',
+            minimum: 1,
+            nullable: true,
+            example: 42,
+            description:
+              'Optional ATS applicant id. When provided, that specific record is ' +
+              'targeted during sync; when absent the service resolves by email.',
+          },
+        },
+      },
+
+      LinkedInFetchResult: {
+        type: 'object',
+        properties: {
+          profile: { $ref: '#/components/schemas/LinkedInProfile' },
+          syncResult: {
+            allOf: [{ $ref: '#/components/schemas/LinkedInSyncResult' }],
+            nullable: true,
+            description: 'Present when sync was requested.',
+          },
+        },
+        required: ['profile'],
+      },
+
+      // ── LinkedIn profile & sync ───────────────────────────────────────────
       LinkedInPosition: {
         type: 'object',
         properties: {
@@ -1219,7 +1318,126 @@ export const openApiSpec = {
       },
     },
 
-    // ── LinkedIn ─────────────────────────────────────────────────────────────
+    // ── LinkedIn OAuth ───────────────────────────────────────────────────────
+    '/linkedin/oauth/authorize': {
+      get: {
+        tags: ['LinkedIn'],
+        summary: 'Get LinkedIn OAuth authorization URL',
+        description:
+          'Builds and returns the LinkedIn OAuth 2.0 authorization URL that the ' +
+          'client should redirect the user\'s browser to. Also returns a `state` ' +
+          'CSRF token that **must** be passed back in the POST /oauth/token request. ' +
+          'Requires admin or recruiter role.',
+        operationId: 'getLinkedInAuthorizationUrl',
+        responses: {
+          200: {
+            description: 'Authorization URL and CSRF state token.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/LinkedInAuthorizationUrlResponse' },
+              },
+            },
+          },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          403: { $ref: '#/components/responses/Forbidden' },
+          500: {
+            description: 'LinkedIn OAuth environment variables are not configured.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/linkedin/oauth/token': {
+      post: {
+        tags: ['LinkedIn'],
+        summary: 'Exchange LinkedIn authorization code for access token',
+        description:
+          'Exchanges the authorization code received from LinkedIn\'s callback with ' +
+          'an access token by calling LinkedIn\'s token endpoint. ' +
+          'The `state` value must match the one returned by GET /oauth/authorize. ' +
+          'Requires admin or recruiter role.',
+        operationId: 'exchangeLinkedInToken',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/LinkedInTokenExchangeRequest' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Access token details.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/LinkedInOAuthToken' },
+              },
+            },
+          },
+          400: { $ref: '#/components/responses/BadRequest' },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          403: { $ref: '#/components/responses/Forbidden' },
+          500: {
+            description: 'LinkedIn token exchange failed.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/linkedin/oauth/fetch': {
+      post: {
+        tags: ['LinkedIn'],
+        summary: 'Fetch LinkedIn candidate data using an access token',
+        description:
+          'Fetches the authenticated LinkedIn member\'s profile via the LinkedIn ' +
+          'userinfo API endpoint and optionally syncs it into the ATS. ' +
+          'When `sync` is `true` (default), the fetched profile is processed by ' +
+          'the same mapping and upsert logic as POST /linkedin/sync. ' +
+          'Requires admin or recruiter role.',
+        operationId: 'fetchLinkedInProfile',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/LinkedInFetchRequest' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Fetched LinkedIn profile and optional ATS sync result.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/LinkedInFetchResult' },
+              },
+            },
+          },
+          400: { $ref: '#/components/responses/BadRequest' },
+          401: { $ref: '#/components/responses/Unauthorized' },
+          403: { $ref: '#/components/responses/Forbidden' },
+          500: {
+            description: 'LinkedIn API call failed.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    // ── LinkedIn sync ────────────────────────────────────────────────────────
     '/linkedin/sync': {
       post: {
         tags: ['LinkedIn'],

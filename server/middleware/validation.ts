@@ -606,6 +606,89 @@ export function validateUserQuery(req: Request, res: Response, next: NextFunctio
 }
 
 // ---------------------------------------------------------------------------
+// LinkedIn OAuth
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates POST /api/linkedin/oauth/token.
+ *
+ * Requires:
+ *  - `code`  — non-empty string (the authorization code from LinkedIn)
+ *  - `state` — non-empty string (CSRF token from GET /authorize)
+ */
+export function validateLinkedInTokenExchange(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const { code, state } = req.body as Record<string, unknown>;
+
+  if (!code || typeof code !== 'string' || code.trim().length === 0) {
+    res.status(400).json({ error: 'code is required and must be a non-empty string' });
+    return;
+  }
+
+  if (code.trim().length > 2048) {
+    res.status(400).json({ error: 'code must not exceed 2048 characters' });
+    return;
+  }
+
+  if (!state || typeof state !== 'string' || state.trim().length === 0) {
+    res.status(400).json({ error: 'state is required and must be a non-empty string' });
+    return;
+  }
+
+  if (state.trim().length > 512) {
+    res.status(400).json({ error: 'state must not exceed 512 characters' });
+    return;
+  }
+
+  next();
+}
+
+/**
+ * Validates POST /api/linkedin/oauth/fetch.
+ *
+ * Requires:
+ *  - `accessToken` — non-empty string
+ *
+ * Optional:
+ *  - `sync`        — boolean (defaults to true)
+ *  - `applicantId` — positive integer
+ */
+export function validateLinkedInFetch(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const { accessToken, sync, applicantId } = req.body as Record<string, unknown>;
+
+  if (!accessToken || typeof accessToken !== 'string' || accessToken.trim().length === 0) {
+    res.status(400).json({ error: 'accessToken is required and must be a non-empty string' });
+    return;
+  }
+
+  if (accessToken.trim().length > 4096) {
+    res.status(400).json({ error: 'accessToken must not exceed 4096 characters' });
+    return;
+  }
+
+  if (sync !== undefined && typeof sync !== 'boolean') {
+    res.status(400).json({ error: 'sync must be a boolean when provided' });
+    return;
+  }
+
+  if (applicantId !== undefined && applicantId !== null) {
+    if (!isPositiveInt(applicantId)) {
+      res.status(400).json({ error: 'applicantId must be a positive integer' });
+      return;
+    }
+  }
+
+  next();
+}
+
+// ---------------------------------------------------------------------------
 // LinkedIn
 // ---------------------------------------------------------------------------
 

@@ -40,6 +40,8 @@ import { LinkedInProfile } from '../types/linkedin';
 import {
   validateLinkedInSync,
   validateLinkedInBatchSync,
+  validateLinkedInTokenExchange,
+  validateLinkedInFetch,
 } from '../middleware/validation';
 
 process.env.JWT_SECRET = TEST_JWT_SECRET;
@@ -50,6 +52,17 @@ process.env.JWT_SECRET = TEST_JWT_SECRET;
 jest.mock('../services/applicantService');
 import * as applicantService from '../services/applicantService';
 const mockApplicantService = applicantService as jest.Mocked<typeof applicantService>;
+
+// ---------------------------------------------------------------------------
+// Mock the LinkedIn OAuth service (used by the OAuth controller).
+// HTTP endpoint tests use this mock to inject controlled responses.
+// Pure unit tests (generateState, buildAuthorizationUrl, mapUserInfoToProfile)
+// import the real implementation directly via jest.requireActual within
+// their describe blocks.
+// ---------------------------------------------------------------------------
+jest.mock('../services/linkedinOAuthService');
+import * as linkedinOAuthService from '../services/linkedinOAuthService';
+const mockOAuthService = linkedinOAuthService as jest.Mocked<typeof linkedinOAuthService>;
 
 // ---------------------------------------------------------------------------
 // App factory
