@@ -9,6 +9,7 @@ import userRoutes from './routes/userRoutes';
 import dbRoutes from './routes/dbRoutes';
 import docsRoutes from './routes/docsRoutes';
 import linkedinRoutes from './routes/linkedinRoutes';
+import resumeParserRoutes from './routes/resumeParserRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
 import { initializeDatabaseConnections, closeDatabaseConnections } from './db/config';
@@ -27,7 +28,8 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
 }));
 app.use(morgan('dev'));
-app.use(express.json());
+// Resume parsing accepts up to 200,000 characters (~200 KB of JSON-encoded text).
+app.use(express.json({ limit: '250kb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Apply the general rate limiter to all /api/* routes.
@@ -47,6 +49,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/applicants', applicantRoutes);
 app.use('/api/linkedin', linkedinRoutes);
+app.use('/api/resume', resumeParserRoutes);
 app.use('/api/db', dbRoutes);
 // OpenAPI spec — unauthenticated so tooling can fetch it freely
 app.use('/api/docs', docsRoutes);

@@ -758,6 +758,41 @@ export function validateLinkedInBatchSync(
 }
 
 // ---------------------------------------------------------------------------
+// Resume Parser
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates the request body for POST /api/resume/parse.
+ *
+ * Requires:
+ *  - `content` — a non-empty string (max 200,000 characters) representing
+ *    the plain-text content of the resume to parse.
+ */
+export function validateResumeParseRequest(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const { content } = req.body as Record<string, unknown>;
+
+  if (!content || typeof content !== 'string' || content.trim().length === 0) {
+    res
+      .status(400)
+      .json({ error: 'content is required and must be a non-empty string' });
+    return;
+  }
+
+  if (content.length > 200_000) {
+    res
+      .status(400)
+      .json({ error: 'content must not exceed 200,000 characters' });
+    return;
+  }
+
+  next();
+}
+
+// ---------------------------------------------------------------------------
 // Keep the old export alias so existing imports don't break
 // ---------------------------------------------------------------------------
 
